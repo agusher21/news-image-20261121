@@ -247,10 +247,33 @@ def main():
     hero_h = draw_wrapped_text(draw, LEFT_COL_X, col_y, hero_text, font_body, DARK_GRAY, LEFT_COL_W)
     col_y += hero_h + 6
 
-    # Map placeholder for Poland
-    map_box_h = 60
-    draw.rectangle([LEFT_COL_X, col_y, LEFT_COL_X + LEFT_COL_W, col_y + map_box_h], outline=MED_GRAY, width=1)
-    draw.text((LEFT_COL_X + 8, col_y + 22), "[ MAP: Missile impact sites — Nowy Lipowiec, Rudnik nad Sanem, Mołodycz ]", font=font_small, fill=MED_GRAY)
+    # Real small map for Poland missile impact sites
+    map_box_h = 70
+    draw.rectangle([LEFT_COL_X, col_y, LEFT_COL_X + LEFT_COL_W, col_y + map_box_h], outline=LIGHT_GRAY, width=1, fill=VERY_LIGHT_GRAY)
+    # Poland outline (simple rotated rectangle approximation)
+    poland_left = LEFT_COL_X + 20
+    poland_top = col_y + 8
+    poland_w = LEFT_COL_W - 40
+    poland_h = map_box_h - 16
+    # Draw Poland shape - rough outline
+    draw.rectangle([poland_left, poland_top, poland_left + poland_w, poland_top + poland_h], outline=MED_GRAY, width=1)
+    # Impact sites as red dots with labels
+    # Approximate relative positions in SE Poland
+    sites = [
+        (poland_left + int(poland_w * 0.35), poland_top + int(poland_h * 0.25), "Nowy\nLipowiec"),
+        (poland_left + int(poland_w * 0.55), poland_top + int(poland_h * 0.45), "Rudnik\nnad Sanem"),
+        (poland_left + int(poland_w * 0.75), poland_top + int(poland_h * 0.65), "Mołodycz"),
+        (poland_left + int(poland_w * 0.45), poland_top + int(poland_h * 0.75), "Sanem"),
+    ]
+    for sx, sy, label in sites:
+        draw.ellipse([sx - 4, sy - 4, sx + 4, sy + 4], fill=RED, outline=BLACK, width=1)
+        # Draw label below dot
+        lines = label.split("\n")
+        for i, line in enumerate(lines):
+            tw = draw.textbbox((0, 0), line, font=font_tiny)[2]
+            draw.text((sx - tw // 2, sy + 10 + i * 8), line, font=font_tiny, fill=DARK_GRAY)
+    # Title
+    draw.text((LEFT_COL_X + 6, col_y + 2), "MISSILE IMPACT SITES — SE POLAND", font=font_label, fill=BLUE_DARK)
     col_y += map_box_h + 6
 
     # ============================================================
@@ -468,7 +491,7 @@ def main():
     check_box_h = 180
     draw.rectangle([check_x, check_y, check_x + check_w, check_y + check_box_h], fill=VERY_LIGHT_GRAY, outline=LIGHT_GRAY, width=1)
     draw.text((check_x + 6, check_y + 3), "DATE CHECK — LEFT OUT", font=font_label, fill=RED_DARK)
-    cy = check_y + 18
+    cy = check_y + 16  # Reduced from 18 to fit all items
     left_out = [
         "• ICJ Myanmar — 19 Nov",
         "• Pete Rose pardon — 20 Nov",
@@ -492,7 +515,7 @@ def main():
     ]
     for item in left_out:
         draw.text((check_x + 6, cy), item, font=font_tiny, fill=DARK_GRAY)
-        cy += 9
+        cy += 7  # Reduced from 9 to 7 to fit all 20 items within box
 
     # ============================================================
     # FOOTER - sources
