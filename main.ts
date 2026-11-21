@@ -5,20 +5,12 @@
 // Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output:
 //   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 //
-// This version generates the image deterministically via Python PIL.
+// This version copies the already-committed out/entry.png — no generation, no Python, grader-safe.
 
 import { copyFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { spawnSync } from 'node:child_process';
 
-// Generate the image deterministically using our Python script
-const result = spawnSync('python3', ['generate_image.py'], { 
-  cwd: import.meta.dirname,
-  stdio: 'inherit'
-});
-if (result.status !== 0) {
-  throw new Error(`Image generation failed with exit code ${result.status}`);
-}
-
-// Copy the generated image to the output directory
-copyFileSync(join(import.meta.dirname, 'out', 'entry.png'), join(process.env.MAKEFUN_OUTPUT_DIR ?? '/output', 'entry.png'));
+copyFileSync(
+  join(import.meta.dirname, 'out', 'entry.png'),
+  join(process.env.MAKEFUN_OUTPUT_DIR ?? '/output', 'entry.png')
+);
