@@ -104,6 +104,7 @@ def main():
     font_body = get_font(9, bold=False)
     font_small = get_font(8, bold=False)
     font_tiny = get_font(7, bold=False)
+    font_timeline = get_font(6, bold=False)  # timeline labels: smaller to fit dense events
     font_label = get_font(8, bold=True)
     font_stat = get_font(17, bold=True)
     font_stat_label = get_font(8, bold=False)
@@ -172,34 +173,59 @@ def main():
     RIGHT_LABEL_X = TIMELINE_CENTER + 4
     RIGHT_LABEL_W = TIMELINE_RIGHT - RIGHT_LABEL_X - 4  # ~56px
 
+    # Evenly distribute 18 events down the full timeline height
+    NUM_EVENTS = len(timeline_events)
+    ROW_H = TIMELINE_H // NUM_EVENTS  # Fixed row height per event (~38px)
+    # measure_text uses line_height = int(font.size * 1.2); match it for drawing
+    LINE_H = int(font_timeline.size * 1.2)
+
+    # Layout pass: pre-measure all labels to know wrapped lines and heights
+    event_layouts = []
     for i, (time, label1, label2) in enumerate(timeline_events):
-        h, m = map(int, time.split(":"))
-        frac = (h * 60 + m) / (24 * 60)
-        ty = TIMELINE_TOP + int(frac * TIMELINE_H)
+        # Alternate sides: even indices on left, odd on right
+        side = "left" if i % 2 == 0 else "right"
+        label_x = LEFT_LABEL_X if side == "left" else RIGHT_LABEL_X
+        label_w = LEFT_LABEL_W if side == "left" else RIGHT_LABEL_W
 
-        # Marker on center line
-        draw.ellipse([TIMELINE_CENTER - 4, ty - 4, TIMELINE_CENTER + 4, ty + 4], fill=RED, outline=BLACK, width=1)
+        # Measure label1 and label2 with wrapping
+        _, label1_h, label1_lines = measure_text(draw, label1, font_timeline, label_w)
+        _, label2_h, label2_lines = measure_text(draw, label2, font_timeline, label_w) if label2 else (0, 0, [])
 
-        # Time label - centered on timeline center
-        tw = draw.textbbox((0, 0), time, font=font_tiny)[2]
-        draw.text((TIMELINE_CENTER - tw // 2, ty - 6), time, font=font_tiny, fill=BLACK)
+        # Time label width for centering
+        time_w = draw.textbbox((0, 0), time, font=font_timeline)[2]
 
-        # Event labels - alternate left/right within timeline strip
-        if i % 2 == 0:
-            # Left side of timeline strip
-            lx = LEFT_LABEL_X
-            # Truncate label if too wide
-            _, label1_h, _ = measure_text(draw, label1, font_tiny, LEFT_LABEL_W)
-            _, label2_h, _ = measure_text(draw, label2, font_tiny, LEFT_LABEL_W) if label2 else (0, 0, [])
-            draw_wrapped_text(draw, lx, ty - 6, label1, font_tiny, BLACK, LEFT_LABEL_W)
-            if label2:
-                draw_wrapped_text(draw, lx, ty + 6, label2, font_tiny, DARK_GRAY, LEFT_LABEL_W)
-        else:
-            # Right side of timeline strip
-            rx = RIGHT_LABEL_X
-            draw_wrapped_text(draw, rx, ty - 6, label1, font_tiny, BLACK, RIGHT_LABEL_W)
-            if label2:
-                draw_wrapped_text(draw, rx, ty + 6, label2, font_tiny, DARK_GRAY, RIGHT_LABEL_W)
+        event_layouts.append({
+            "side": side,
+            "label_x": label_x,
+            "label_w": label_w,
+            "time": time,
+            "time_w": time_w,
+            "label1_lines": label1_lines,
+            "label1_h": label1_h,
+            "label2_lines": label2_lines,
+            "label2_h": label2_h,
+        })
+
+    # Draw pass: place each event in its fixed row, centered vertically
+    for i, layout in enumerate(event_layouts):
+        row_top = TIMELINE_TOP + i * ROW_H
+        row_center = row_top + ROW_H // 2
+
+        # Marker on center line (at row center)
+        draw.ellipse([TIMELINE_CENTER - 4, row_center - 4, TIMELINE_CENTER + 4, row_center + 4], fill=RED, outline=BLACK, width=1)
+
+        # Time label - centered on timeline center, vertically centered in row
+        time_y = row_center - font_timeline.size // 2
+        draw.text((TIMELINE_CENTER - layout["time_w"] // 2, time_y), layout["time"], font=font_timeline, fill=BLACK)
+
+        # Event labels - draw wrapped within the row, stacked label1 above label2
+        label_y = row_center - (layout["label1_h"] + layout["label2_h"]) // 2
+        for line in layout["label1_lines"]:
+            draw.text((layout["label_x"], label_y), line, font=font_timeline, fill=BLACK)
+            label_y += LINE_H
+        for line in layout["label2_lines"]:
+            draw.text((layout["label_x"], label_y), line, font=font_timeline, fill=DARK_GRAY)
+            label_y += LINE_H
 
     # ============================================================
     # LEFT COLUMN - Hero story: Poland missiles
